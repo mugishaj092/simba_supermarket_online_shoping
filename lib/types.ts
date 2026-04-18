@@ -11,6 +11,8 @@ export interface Product {
   description?: string;
   featured?: boolean;
   tags?: string[];
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface Store {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, X, SlidersHorizontal } from "lucide-react";
+import { Search, X, SlidersHorizontal, LayoutGrid, List } from "lucide-react";
 import { Product } from "@/lib/types";
 import { ProductCard } from "@/features/products/components/ProductCard";
 import { ProductGridSkeleton } from "@/features/products/components/ProductSkeleton";
@@ -29,6 +29,8 @@ const SORT_OPTIONS = [
   { value: "name-desc", label: "Name: Z → A" },
 ];
 
+type ViewMode = "grid" | "list";
+
 export default function ProductsClient() {
   const searchParams = useSearchParams();
   const lang = useAppSelector((s) => s.language.current);
@@ -39,6 +41,7 @@ export default function ProductsClient() {
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [category, setCategory] = useState(searchParams.get("category") || "");
@@ -138,9 +141,7 @@ export default function ProductsClient() {
                   <button
                     onClick={() => setCategory("")}
                     className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors ${
-                      !category
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:bg-muted"
+                      !category ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     All Products
@@ -150,9 +151,7 @@ export default function ProductsClient() {
                       key={cat}
                       onClick={() => setCategory(category === cat ? "" : cat)}
                       className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors ${
-                        category === cat
-                          ? "bg-primary/10 text-primary font-semibold"
-                          : "text-muted-foreground hover:bg-muted"
+                        category === cat ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
                       <span className="truncate block">{cat.length > 20 ? cat.substring(0, 18) + "…" : cat}</span>
@@ -183,15 +182,9 @@ export default function ProductsClient() {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <div
                     onClick={() => setInStockOnly(!inStockOnly)}
-                    className={`w-10 h-5 rounded-full transition-colors cursor-pointer ${
-                      inStockOnly ? "bg-primary" : "bg-muted"
-                    }`}
+                    className={`w-10 h-5 rounded-full transition-colors cursor-pointer ${inStockOnly ? "bg-primary" : "bg-muted"}`}
                   >
-                    <div
-                      className={`w-4 h-4 bg-white rounded-full shadow m-0.5 transition-transform ${
-                        inStockOnly ? "translate-x-5" : ""
-                      }`}
-                    />
+                    <div className={`w-4 h-4 bg-white rounded-full shadow m-0.5 transition-transform ${inStockOnly ? "translate-x-5" : ""}`} />
                   </div>
                   <span className="text-sm text-muted-foreground">{t(lang, "inStockOnly")}</span>
                 </label>
@@ -210,35 +203,64 @@ export default function ProductsClient() {
 
           {/* Main */}
           <div className="flex-1 min-w-0">
-            {/* Mobile filter bar */}
-            <div className="lg:hidden flex gap-2 mb-4 flex-wrap">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-sm font-medium text-foreground"
-              >
-                <SlidersHorizontal size={14} /> Filters
-                {hasFilters && <span className="w-2 h-2 rounded-full bg-primary" />}
-              </button>
-              {CATEGORIES.slice(0, 3).map((cat) => (
+            {/* Toolbar: mobile filters + view toggle */}
+            <div className="flex items-center justify-between gap-2 mb-4">
+              {/* Mobile filter bar */}
+              <div className="flex gap-2 flex-wrap flex-1 lg:hidden">
                 <button
-                  key={cat}
-                  onClick={() => setCategory(category === cat ? "" : cat)}
-                  className={`px-3 py-2 rounded-xl text-xs font-medium transition-colors border ${
-                    category === cat
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border text-muted-foreground"
+                  onClick={() => setSidebarOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-sm font-medium text-foreground"
+                >
+                  <SlidersHorizontal size={14} /> Filters
+                  {hasFilters && <span className="w-2 h-2 rounded-full bg-primary" />}
+                </button>
+                {CATEGORIES.slice(0, 3).map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setCategory(category === cat ? "" : cat)}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium transition-colors border ${
+                      category === cat
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border text-muted-foreground"
+                    }`}
+                  >
+                    {cat.split(" & ")[0].substring(0, 10)}
+                  </button>
+                ))}
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-border bg-background text-xs text-foreground focus:outline-none"
+                >
+                  {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+
+              {/* View mode toggle — always visible */}
+              <div className="flex items-center gap-1 p-1 bg-muted rounded-xl shrink-0 ml-auto">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  aria-label="Grid view"
+                  className={`p-1.5 rounded-lg transition-all duration-200 ${
+                    viewMode === "grid"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {cat.split(" & ")[0].substring(0, 10)}
+                  <LayoutGrid size={16} />
                 </button>
-              ))}
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-border bg-background text-xs text-foreground focus:outline-none"
-              >
-                {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+                <button
+                  onClick={() => setViewMode("list")}
+                  aria-label="List view"
+                  className={`p-1.5 rounded-lg transition-all duration-200 ${
+                    viewMode === "list"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <List size={16} />
+                </button>
+              </div>
             </div>
 
             {/* Mobile sidebar drawer */}
@@ -292,26 +314,34 @@ export default function ProductsClient() {
               </div>
             )}
 
-            {/* Products grid */}
+            {/* Products */}
             {loading && products.length === 0 ? (
-              <ProductGridSkeleton count={24} />
+              <ProductGridSkeleton count={viewMode === "list" ? 6 : 9} viewMode={viewMode} />
             ) : products.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <div className="text-5xl mb-4">🔍</div>
                 <h3 className="text-xl font-bold text-foreground mb-2">{t(lang, "noProducts")}</h3>
                 <p className="text-muted-foreground mb-6">{t(lang, "tryAdjusting")}</p>
-                <button
-                  onClick={clearFilters}
-                  className="btn-primary"
-                >
+                <button onClick={clearFilters} className="btn-primary">
                   {t(lang, "clearFilters")}
                 </button>
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                <div
+                  className={
+                    viewMode === "list"
+                      ? "flex flex-col gap-4"
+                      : "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
+                  }
+                >
                   {products.map((product, i) => (
-                    <ProductCard key={product.id} product={product} index={i % 24} />
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      index={i % 24}
+                      viewMode={viewMode}
+                    />
                   ))}
                 </div>
 
