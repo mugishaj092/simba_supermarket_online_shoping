@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
-import { ProductsData, Product } from "@/lib/types";
+import productsData from "@/public/simba_products.json";
+import { Product } from "@/lib/types";
 
-const DATA_PATH = path.join(process.cwd(), "public", "simba_products.json");
-
-async function readData(): Promise<ProductsData> {
-  const raw = await fs.readFile(DATA_PATH, "utf-8");
-  return JSON.parse(raw);
-}
-
-async function writeData(data: ProductsData): Promise<void> {
-  await fs.writeFile(DATA_PATH, JSON.stringify(data, null, 2), "utf-8");
-}
+const data = productsData as { store: { name: string; tagline: string; location: string; currency: string }; products: Product[] };
 
 export async function GET(req: NextRequest) {
   try {
-    const data = await readData();
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const search = searchParams.get("search");
@@ -71,7 +60,7 @@ export async function GET(req: NextRequest) {
       totalPages,
       page,
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to read products" },
       { status: 500 }
@@ -79,34 +68,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const data = await readData();
-
-    const maxId = Math.max(...data.products.map((p) => Number(p.id)));
-    const newProduct: Product = {
-      id: maxId + 1,
-      name: body.name,
-      price: parseFloat(body.price),
-      category: body.category,
-      subcategoryId: parseInt(body.subcategoryId) || 0,
-      inStock: body.inStock !== false,
-      image:
-        body.image ||
-        `https://placehold.co/300x300/f0f0f0/555?text=${encodeURIComponent(body.name.substring(0, 20))}`,
-      unit: body.unit || "Pcs",
-      description: body.description || "",
-    };
-
-    data.products.push(newProduct);
-    await writeData(data);
-
-    return NextResponse.json({ product: newProduct }, { status: 201 });
-  } catch (err) {
-    return NextResponse.json(
-      { error: "Failed to create product" },
-      { status: 500 }
-    );
-  }
+export async function POST() {
+  return NextResponse.json(
+    { error: "Write operations are not supported in this deployment" },
+    { status: 405 }
+  );
 }

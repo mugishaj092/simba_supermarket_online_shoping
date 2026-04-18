@@ -2,11 +2,15 @@ import Link from "next/link";
 import { ArrowRight, ShoppingBag, Sparkles, Truck, ShieldCheck, RotateCcw, CreditCard } from "lucide-react";
 import { ProductCard } from "@/features/products/components/ProductCard";
 import { Product } from "@/lib/types";
+import productsData from "@/public/simba_products.json";
 
-async function getData() {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const res = await fetch(`${base}/api/products?limit=10`, { cache: "no-store" });
-  return res.json();
+function getData() {
+  const data = productsData as { store: { name: string; tagline: string; location: string; currency: string }; products: Product[] };
+  return {
+    products: data.products.slice(0, 10),
+    store: data.store,
+    total: data.products.length,
+  };
 }
 
 const CATEGORIES = [
@@ -28,8 +32,8 @@ const TRUST_ITEMS = [
   { icon: RotateCcw, title: "Easy Returns", desc: "Hassle-free policy", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/40" },
 ];
 
-export default async function HomePage() {
-  const { products, store, total } = await getData();
+export default function HomePage() {
+  const { products, store, total } = getData();
 
   return (
     <div className="pt-16">
